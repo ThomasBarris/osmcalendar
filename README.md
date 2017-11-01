@@ -30,6 +30,6 @@ example:
 3,United Kingdom,1,Edinburgh,3,2,1  
 
 ## Prerequisites
-Ruby3
+Python3
 
 Microformat2 parser https://github.com/tommorris/mf2py
