@@ -18,12 +18,14 @@ It then splits the comma separated properties/name into a list and assumes that
 If the generated list has more than 3 values it tries to read an exception format file. It is comma seperated
 a,b,c,d,e,f,g
 
-with  
+with 
+```C
 if (list[a] == b) and (list[c] == d) {  
-	country = e;  
-        state = f; //use 99 if not available  
-	town = g;  
+    country = e;  
+    state = f; //use 99 if not available  
+    town = g;  
 }  
+```
 example:  
 3,United Kingdom,1,Edinburgh,3,2,1  
 
