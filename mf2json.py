@@ -10,6 +10,7 @@ import io                                  # and io for file handling
 from geopy.geocoders import Nominatim      # geocoding lib from https://github.com/geopy/geopy
 from urllib.request import urlopen         # we need to read the html file directly to recognise BIG
 from time import sleep                     # Nominatim is very sensitive and we must wait between to requests
+from datetime import datetime              # for the timestamp in the output
 
 #########################################################################
 # file and path holding the exceptions                                  #
@@ -26,6 +27,8 @@ wiki_url = "http://wiki.openstreetmap.org/wiki/Current_events"          #
 #                                                                       #
 # enable geocoding (lat/lon from town/country), source Nominatim        #
 geocoding = False            #True or False                             #
+#                                                                       #
+osmc_version = 7             #we are changing it quite often            #
 #########################################################################
 
 
@@ -289,13 +292,31 @@ for each in formated_json:
             #add the error entry to the list that will be later exported as error.json
             out_error.append(out_error_line)
 
+# create the frame around the good results with timestamp and meta data
+dt = datetime.now()
+timestamp = dt.strftime("%A, %d. %B %Y %I:%M%p")
+out_json = { "version": osmc_version,
+             "generator": "osmcalender",
+             "time": timestamp,
+             "copyright": "The data is taken from http://wiki.openstreetmap.org/wiki/Template:Calendar and follows its license rules.",
+             "events": out_array 
+          }
 
 # write the result to a json file at the apache root
 with io.open(result_json, 'w', encoding='utf8') as json_file:
-    json.dump(out_array, json_file, ensure_ascii=False)
+    json.dump(out_json, json_file, ensure_ascii=False, sort_keys=True)
+
+
+# create the frame around the faulty results with timestamp and meta data
+out_json_error = { "version": osmc_version,
+                   "generator": "osmcalender",
+                   "time": timestamp,
+                   "copyright": "The data is taken from http://wiki.openstreetmap.org/wiki/Template:Calendar and follows its license rules.",
+                   "events": out_error
+                 }
 
 # write the error list to a json file at the apache root
 with io.open(error_json, 'w', encoding='utf8') as json_error:
-    json.dump(out_error, json_error, ensure_ascii=False)
+    json.dump(out_json_error, json_error, ensure_ascii=False)
 
 
