@@ -15,13 +15,13 @@ from bs4 import BeautifulSoup              # for stripping html tags from raw ht
 
 #########################################################################
 # file and path holding the exceptions                                  #
-exception_file = '/var/www/html/osmc/excp.lst'                      #
+exception_file = '/var/www/html/osmc/excp.lst'                          #
 #                                                                       #
 # file and path to save the json file with the results                  #
-result_json = '/var/www/html/osmc/calendar.json'                             #
+result_json = '/var/www/html/osmc/calendar.json'                        #
 #                                                                       #
 # file and path to store the unhandled exceptions                       #
-error_json  = '/var/www/html/osmc/error.json'                                #
+error_json  = '/var/www/html/osmc/error.json'                           #
 #                                                                       #
 # where to read the html with the Microformat2 coded calendar entries   #
 wiki_url = "http://wiki.openstreetmap.org/wiki/Current_events"          #
@@ -29,7 +29,10 @@ wiki_url = "http://wiki.openstreetmap.org/wiki/Current_events"          #
 # enable geocoding (lat/lon from town/country), source Nominatim        #
 geocoding = False            #True or False                             #
 #                                                                       #
-osmc_version = 7             #we are changing it quite often            #
+# file and path holding the preview html                                #
+preview_file = '/var/www/html/osmc/preview.html'                        #
+#                                                                       #
+osmc_version = 8             #we are changing it quite often            #
 #########################################################################
 
 
@@ -40,7 +43,7 @@ with urlopen(wiki_url) as f:
 #wiki_html_list = wiki_html_list.encode('utf-8')
 
 # reading data from the OSM Wiki site and parse it
-mf_obj = mf2py.Parser(url=wiki_url)
+mf_obj = mf2py.Parser(url=wiki_url,html_parser="html5lib")
 
 # convert the data to a json string and filter events / exclude all the html stuff
 ## create a json string
@@ -206,6 +209,8 @@ for each in formated_json:
         ## default is that it is not a big event
         out_data_line['Big'] = ''
 
+        out_data_line['EventType'] = '' #nothing recognised
+
         ## unfortunatelly the event type is 2 lines before the event description in the html so we need to remember 2 lines history
         h_line = ''
         prev_h_line = ''
@@ -269,11 +274,11 @@ for each in formated_json:
                 elif ( prev_prev_h_line.find('class="p-category" title="Miscellaneous"') >= 0 ):
                     out_data_line['EventType'] = 'Misc' #whatever
 
-                else:
-                    out_data_line['EventType'] = '' #nothing recognised
-        print (out_data_line['EventType'], end='' )
 
-
+        if (out_data_line['EventType']=='' ):
+            print('ERR:EventType or <span> missing', end='')
+        else:
+            print (out_data_line['EventType'], end='')
 
         # end of line/entry
         print()
@@ -331,4 +336,63 @@ out_json_error = { "version": osmc_version,
 with io.open(error_json, 'w', encoding='utf8') as json_error:
     json.dump(out_json_error, json_error, ensure_ascii=False)
 
+#print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
 
+with open(preview_file, 'w') as preview_html:
+    print ('<!DOCTYPE html>'                  ,file=preview_html)
+    print ('<html lang="en">'                 ,file=preview_html)
+    print ('<meta charset="utf-8"/>'          ,file=preview_html)
+    print ('    <body><table border="1">'     ,file=preview_html)
+
+    print ('    <thead>'                      ,file=preview_html)
+    print ('        <tr>'                     ,file=preview_html)
+    print ('            <th>Start</th>'       ,file=preview_html)
+    print ('            <th>End</th>'         ,file=preview_html)
+    print ('            <th>Description</th>' ,file=preview_html)
+    print ('            <th>City</th>'        ,file=preview_html)
+    print ('            <th>Country</th>'     ,file=preview_html)
+    print ('            <th>Big Event</th>'   ,file=preview_html)
+    print ('            <th>Event Type</th>'  ,file=preview_html)
+    print ('        </tr>'                    ,file=preview_html)
+    print ('    <thead>'                      ,file=preview_html)
+
+    print ('    <tbody>'                      ,file=preview_html)
+
+    for result in out_json['events']:
+        print ('            <tr>'                 ,file=preview_html)
+
+        print ('                <td>',end=''      ,file=preview_html)
+        print (result['start'], end=''            ,file=preview_html)
+        print ('                </td>'            ,file=preview_html)
+
+        print ('                <td>',end=''      ,file=preview_html)
+        print (result['end'], end=''              ,file=preview_html)
+        print ('                </td>'            ,file=preview_html)
+
+        print ('                <td>',end=''      ,file=preview_html)
+        print (result['description'], end=''      ,file=preview_html)
+        print ('                </td>'            ,file=preview_html)
+
+        print ('                <td>',end=''      ,file=preview_html)
+        print (result['town'], end=''             ,file=preview_html)
+        print ('                </td>'            ,file=preview_html)
+
+        print ('                <td>',end=''      ,file=preview_html)
+        print (result['country'], end=''          ,file=preview_html)
+        print ('                </td>'            ,file=preview_html)
+
+        print ('                <td>',end=''      ,file=preview_html)
+        print (result['Big'], end=''              ,file=preview_html)
+        print ('                </td>'            ,file=preview_html)
+
+        print ('                <td>',end=''      ,file=preview_html)
+        print (result['EventType'], end=''        ,file=preview_html)
+        print ('                </td>'            ,file=preview_html)
+
+        print ('            </tr>'                ,file=preview_html)
+
+    print ('    </tbody>'                     ,file=preview_html)
+    print ('</table>'                         ,file=preview_html)
+    print ('timestamp: ',end=''               ,file=preview_html)
+    print (timestamp                          ,file=preview_html)
+    print ('</body></html>'                   ,file=preview_html)
