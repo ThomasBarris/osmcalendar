@@ -10,7 +10,7 @@ import io                                  # and io for file handling
 from geopy.geocoders import Nominatim      # geocoding lib from https://github.com/geopy/geopy
 from urllib.request import urlopen         # we need to read the html file directly to recognise BIG
 from time import sleep                     # Nominatim is very sensitive and we must wait between to requests
-from datetime import datetime              # for the timestamp in the output
+from datetime import datetime,timedelta    # for the timestamp in the output and the date adjustment
 from bs4 import BeautifulSoup              # for stripping html tags from raw html for finding "big" and conference type
 
 #########################################################################
@@ -32,8 +32,22 @@ geocoding = False            #True or False                             #
 # file and path holding the preview html                                #
 preview_file = '/var/www/html/osmc/preview.html'                        #
 #                                                                       #
-osmc_version = 8             #we are changing it quite often            #
+osmc_version = 9             #we are changing it quite often            #
 #########################################################################
+
+
+# functions that adjusts or converts date
+# the mf2py lib returns the end date +1...for whatever reason...so function is mainly used to reduce date by -1
+# fucntion held variable to allow format changes (string -> datetime object -> string
+def dateMod(inputDate, modifier):
+    # change the date string YYYY-mm-dd to a datetime object
+    formated_date=datetime.strptime(inputDate, '%Y-%m-%d')
+    #apply the modifier to the date
+    modified_date = formated_date + timedelta(days=modifier)
+    # convert it back to a string YYYY-mm-dd
+    outputDate = modified_date.strftime('%Y-%m-%d')
+    return outputDate
+
 
 
 # reading the wiki and copy the content into a list of strings
@@ -94,12 +108,9 @@ for each in formated_json:
         prelim_out_data['start'] = ''
     #same for end date
     try:
-        # the mf2py lib returns the end date +1...for whatever reason
-        # so copy the last two chars, convert to integer, reduce it by 1, 
-        # convert back to string with two decimals and copy it together
-        end_day_int = int( each['properties']['end'][0][-2:]) -1
-        end_day_string = '{0:02}'.format(end_day_int)
-        each['properties']['end'][0] = each['properties']['end'][0][:-2] + end_day_string
+        # the mf2py lib returns the end date +1...for whatever reason...correct
+        each['properties']['end'][0] = dateMod(each['properties']['end'][0],-1)
+
 
         print (each['properties']['end'][0], end=end_str)
         prelim_out_data['end'] = each['properties']['end'][0]
